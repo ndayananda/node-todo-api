@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const {ObjectID} = require('mongodb');
+const _ = require('lodash');
 
 const {mongoose} = require('./db/mongoose');
 const {Todo} = require('./models/todo.model');
@@ -75,7 +76,7 @@ app.delete('/todos/:id', (req, res) => {
     if(!ObjectID.isValid(id))
         return res.status(404).send();
 
-    Todo.findByIdAndRemove().then((todo) => {
+    Todo.findByIdAndRemove(id).then((todo) => {
         if(!todo)
             return res.status(404).send();
             
@@ -88,6 +89,41 @@ app.delete('/todos/:id', (req, res) => {
     });
 });
 
+app.patch('/todos/:id', (req, res) => {
+    var id = req.params.id;
+
+    if(!ObjectID.isValid(id))
+        return res.status(404).send();
+
+    // Create a copy of response body object
+    // User should not be able to update completedAt time and id
+    // CompletedAt is the timestamp which will be set when completed is set to true dynamically
+    var body = _.pick(req.body, ['text', 'completed']);
+
+    if(_.isBoolean(body.completed) && body.completed) {
+        body.completedAt = new Date().getTime();
+    } else {
+        body.completed = false;
+        body.completedAt = null;
+    }
+
+    Todo.findByIdAndUpdate(id, {
+        $set: body
+    }, {
+        new: true // this will return the new updated document. By default it will be false and old document will be returned
+    }).then((todo) => {
+        if(!todo)
+            return res.status(404).send();
+        
+        res.send({
+            success: true,
+            data: todo
+        });
+    }).catch((err) => {
+        res.status(404).send(err);
+    });
+})
+
 const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
@@ -97,26 +133,3 @@ app.listen(port, () => {
 module.exports = {
     app
 };
-
-// const todo1 = new Todo({
-//     text: 'Todo item 4',
-//     completed: false
-// });
-
-// todo1.save().then((doc) => {
-//     console.log('Todo Saved', doc);
-// }, (err) => {
-//     console.log('Unable to save the todo', err);
-// });
-
-
-
-// const naveen = new User({
-//     email: ' '
-// });
-
-// naveen.save().then((doc) => {
-//     console.log('User Saved', doc);
-// }, (err) => {
-//     console.log('Unable to save the user', err);
-// });
