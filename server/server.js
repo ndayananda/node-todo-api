@@ -124,7 +124,23 @@ app.patch('/todos/:id', (req, res) => {
     }).catch((err) => {
         res.status(404).send(err);
     });
-})
+});
+
+app.post('/users', (req, res) => {
+    var body = _.pick(req.body, ['email', 'password']);
+     var user = new User(body);
+     console.log(user);
+     var token = user.generateAuthToken();
+
+     user.save().then((doc) => {
+        res.header('x-auth', token).send({
+            success: true,
+            data: _.pick(doc, ['_id', 'email'])
+        });
+     }).catch((err) => {
+        res.status(400).send(err);
+     });
+});
 
 const port = process.env.PORT || 3000;
 
