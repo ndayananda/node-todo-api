@@ -166,7 +166,7 @@ app.post('/login', (req, res) => {
     });
 });
 
-app.delete('/logout', authenticate, (req, res) => {
+app.delete('/users/me/token', authenticate, (req, res) => {
     // Using the authenticate middleware to check authenticated user
     // If user is authenticated then user & token will be added to the request in a
     req.user.removeToken(req.token).then(() => {

@@ -4,6 +4,7 @@ const expect = require('expect');
 
 const {app} = require('../server');
 const {Todo} = require('../models/todo.model');
+const {User} = require('../models/user.model');
 const {todos, populateTodos, users, populateUsers} = require('./seed/seed');
 
 beforeEach(populateUsers);
@@ -289,3 +290,37 @@ describe('POST /Login', () => {
             .end(() => done())
     });
 });
+
+describe('DELETE /users/me/token', () => {
+    it('Should authenticate the user and logout if authenticated', (done) => {
+        request(app)
+            .delete('/users/me/token')
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.success).toBe(true);
+            })
+            .end((err, res) => {
+                if(err)
+                    return done(err);
+
+                User.findOne({
+                    email: users[0].email
+                }).then((user) => {
+                    if(!user)
+                        return Promise.reject()
+
+                    expect(user.tokens.length).toBe(0);
+                    done();
+                }).catch((err) => done(err))
+            })
+    });
+
+    it('Should return 400 if token is invalid', (done) => {
+        request(app)
+            .delete('/users/me/token')
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(400)
+            .end(() => done())
+    });
+})
