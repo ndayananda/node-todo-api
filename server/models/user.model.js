@@ -69,6 +69,18 @@ userSchema.methods.generateAuthToken = function() {
     return token;
 };
 
+userSchema.methods.removeToken = function(token) {
+    var user = this;
+
+    // invoke mongodb update method on user.
+    // using $pull operator which removes all instances of a value from an existing array
+    return user.update({
+        $pull: {
+            tokens: {token}
+        }
+    });
+};
+
 userSchema.statics.findByToken = function(token) {
     var User = this;
 
@@ -93,9 +105,9 @@ userSchema.statics.findByToken = function(token) {
 
 userSchema.statics.findByCredentials = function(email, password) {
     var User = this;
-
+    
     return User.findOne({email}).then((user) => {
-        if(!user || password)
+        if(!user || !password)
             return Promise.reject();
 
         return bcrypt.compare(password, user.password).then((success) => {

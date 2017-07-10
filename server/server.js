@@ -166,6 +166,21 @@ app.post('/login', (req, res) => {
     });
 });
 
+app.delete('/logout', authenticate, (req, res) => {
+    // Using the authenticate middleware to check authenticated user
+    // If user is authenticated then user & token will be added to the request in a
+    req.user.removeToken(req.token).then(() => {
+        res.send({
+            success: true,
+            data: {
+                message: 'Logged out successfully'
+            }
+        });
+    }).catch((err) => {
+        res.status(400).send();
+    });
+})
+
 const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
