@@ -9,6 +9,7 @@ const authenticate = (req, res, next) => {
         req.token = token;
         next();
     }).catch((err) => {
+        console.log('Inside catch');
         res.status(401).send();
     });
 };

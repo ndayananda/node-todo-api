@@ -4,22 +4,10 @@ const expect = require('expect');
 
 const {app} = require('../server');
 const {Todo} = require('../models/todo.model');
+const {todos, populateTodos, users, populateUsers} = require('./seed/seed');
 
-const todos = [{
-    _id: new ObjectID(),
-    text: 'Test todo item 1'
-}, {
-    _id: new ObjectID(),
-    text: 'Test todo item 2'
-}];
-
-beforeEach((done) => {
-    Todo.remove({}).then(() => {
-        return Todo.insertMany(todos);
-    }).then(() => {
-        done();
-    });
-});
+beforeEach(populateUsers);
+beforeEach(populateTodos);
 
 describe('POST /todos', () => {
     it('Should create new todo item', (done) => {
@@ -202,4 +190,102 @@ describe('UPDATE /todos:id', () => {
             .expect(404)
             .end((err) => done(err))
     });
-})
+});
+
+describe('GET /users/me', () => {
+    it('Should return a user if authenticated', (done) => {
+        request(app)
+            .get('/users/me')
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.success).toBe(true);
+                expect(res.body.data._id).toBe(user[0]._id);
+                expect(res.body.data.email).toBe(user[0].email);
+            })
+            .end(() => done());
+    });
+
+    it('Should return 401 if not authenticated', (done) => {
+        request(app)
+            .get('/users/me')
+            .expect(401)
+            .expect((res) => {
+                expect(res.body).toEqual({});
+            })
+            .end(() => done());
+    });
+});
+
+describe('POST /Login', () => {
+    it('Should authenticate user and return valid JWT token', (done) => {
+        request(app)
+            .post('/login')
+            .send({
+                email: users[0].email,
+                password: users[0].password
+            })
+            .expect(200)
+            .expect('x-auth', users[0].tokens[0].token)
+            .expect((res) => {
+                expect(res.body.success).toBe(true);
+                expect(res.body.data._id).toBe(users[0]._id);
+                expect(res.body.data.email).toBe(users[0].email);
+            })
+            .end(() => done())
+    });
+
+    it('Should return 401 unautherised if password is missing', (done) => {
+        request(app)
+            .post('/login')
+            .send({
+                email: users[0].email
+            })
+            .expect(401)
+            .expect((res) => {
+                expect(res.body.success).toBe(false);
+            })
+            .end(() => done())
+    });
+
+    it('Should return 401 unautherised if email is missing', (done) => {
+        request(app)
+            .post('/login')
+            .send({
+                password: users[0].password
+            })
+            .expect(401)
+            .expect((res) => {
+                expect(res.body.success).toBe(false);
+            })
+            .end(() => done())
+    });
+
+    it('Should return 401 unautherised if email is wrong', (done) => {
+        request(app)
+            .post('/login')
+            .send({
+                email: 'naven@example.com',
+                password: users[0].password
+            })
+            .expect(401)
+            .expect((res) => {
+                expect(res.body.success).toBe(false);
+            })
+            .end(() => done())
+    });
+
+     it('Should return 401 unautherised if password is wrong', (done) => {
+        request(app)
+            .post('/login')
+            .send({
+                email: users[0].email,
+                password: users[0].password+'!'
+            })
+            .expect(401)
+            .expect((res) => {
+                expect(res.body.success).toBe(false);
+            })
+            .end(() => done())
+    });
+});

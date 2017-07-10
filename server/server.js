@@ -4,6 +4,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const {ObjectID} = require('mongodb');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
 
 const {mongoose} = require('./db/mongoose');
 const {Todo} = require('./models/todo.model');
@@ -145,6 +146,24 @@ app.post('/users', (req, res) => {
 
 app.get('/users/me', authenticate, (req, res) => {
     res.send(req.user);
+});
+
+app.post('/login', (req, res) => {
+    User.findByCredentials(req.body.email, req.body.password).then((user) => {
+        res
+            .header('x-auth', user.generateAuthToken())
+            .send({
+                success: true,
+                data: user
+            });
+    }).catch((err) => {
+        res.status(401).send({
+            success: false,
+            error: {
+                message: 'Please enter valid email/password'
+            }
+        })
+    });
 });
 
 const port = process.env.PORT || 3000;
