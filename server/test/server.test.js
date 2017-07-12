@@ -19,6 +19,7 @@ describe('POST /todos', () => {
             .send({
                 text
             })
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
                 expect(res.body.text).toBe(text);
@@ -29,28 +30,44 @@ describe('POST /todos', () => {
                     return done(err);
                 }
 
-                Todo.find().then((todos) => {
-                    expect(todos[todos.length - 1].text).toBe(text);
+                Todo.findById({
+                    _id: res.body._id
+                }).then((todo) => {
+                    expect(todo._creator).toBe(users[0]._id);
                     done();
                 }).catch(err => done(err));
             });
     });
 
-    it('Should validate for required filed to create todo item', (done) => {
+    it('Should return 400 if required field is not sent to create todo item', (done) => {
         request(app)
             .post('/todos')
             .send()
+            .set('x-auth', users[0].tokens[0].token)
             .expect(400)
             .end((err, res) => {
                 done(err);
             });
-    })
+    });
+
+    it('Should create todo item only if user is authenticated', (done) => {
+        var text = 'Todo item 2 for test';
+
+        request(app)
+            .post('/todos')
+            .send({text})
+            .expect(401)
+            .end((err, res) => {
+                done(err);
+            });
+    });
 });
 
 describe('GET /todos', () => {
-    it('Should fetch all the todos', (done) => {
+    it('Should fetch all the todos created by logged in user', (done) => {
         request(app)
             .get('/todos')
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
                 expect(res.body.success).toBe(true);
@@ -58,11 +75,20 @@ describe('GET /todos', () => {
             .end((err, res) => {
                 if(err) return done(err);
 
-                Todo.find().then((todos) => {
+                Todo.find({
+                    _creator: users[0]._id
+                }).then((todos) => {
                     expect(res.body.data.length).toBe(todos.length);
                     done();
                 });
             });
+    });
+
+    it('Should return 401 unautherised if user is unathenticated', (done) => {
+        request(app)
+            .get('/todos')
+            .expect(401)
+            .end(() => done());
     });
 
     it('Should get the matching document', (done) => {

@@ -65,6 +65,7 @@ userSchema.methods.generateAuthToken = function() {
     var token = jwt.sign({_id: user._id.toHexString(), access}, 'secret1234').toString();
 
     user.tokens.push({access, token});
+    user.save();
 
     return token;
 };
