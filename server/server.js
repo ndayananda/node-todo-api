@@ -22,7 +22,10 @@ app.post('/todos', authenticate, (req, res) => {
     });
 
     todo.save().then((doc) => {
-        res.send(doc);
+        res.send({
+            success: true,
+            data: doc
+        });
     }, (err) => {
         res.status(400).send(err);
     });
